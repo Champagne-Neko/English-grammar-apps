@@ -127,6 +127,15 @@ button:focus-visible, .stone:focus-visible { outline: 2px solid var(--gold); out
 .lesson-head h2 { font-size: clamp(1.4rem, 4.6vw, 1.9rem); color: var(--parchment); }
 .jp { margin: 6px 0 0; font-size: 1.05rem; }
 
+.origin {
+  border-left: 3px solid #d9b45b80;
+  padding: 4px 0 4px 14px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.origin-label { font-size: 12px; letter-spacing: .08em; color: var(--parchment-dim); }
+.origin-text { margin: 0; font-family: var(--font-stone); font-size: 1.15rem; line-height: 1.5; }
+.origin-text em { font-style: normal; color: #f6dc97; border-bottom: 2px solid var(--gold); }
+.origin-move { margin: 0; font-size: 13px; color: var(--gold); }
 .altar {
   position: relative;
   background:
@@ -241,6 +250,7 @@ button:focus-visible, .stone:focus-visible { outline: 2px solid var(--gold); out
 .compare b { font-family: var(--font-body); font-size: 12px; font-weight: 700; color: #7a5a1e; }
 .compare .inv { color: #2b1d07; }
 .compare em { font-style: normal; background: #d9b45b; border-radius: 4px; padding: 0 3px; }
+.compare span:not(.inv) em { background: #d9b45b55; }
 .tip { margin: 0; font-size: 14.5px; }
 
 /* ---------- finale ---------- */
@@ -288,6 +298,7 @@ canvas#fx { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events
     <div class="howto">
       <h2>How to cast</h2>
       <ol>
+        <li><strong>元の文（ふつうの語順）</strong>を見て、どの語が前に出るかを考える。</li>
         <li>下の山から<strong>単語の石</strong>をドラッグして、上の魔法陣に並べる（タップでも置ける）。</li>
         <li>並べた石はドラッグで入れ替え。山に戻すと外せる。</li>
         <li><strong>偽りの石</strong>が1つ混ざっている。使わずに残そう。</li>
@@ -305,6 +316,7 @@ canvas#fx { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events
         <span class="name">Wizarding World of Inversion</span>
         <div class="sockets" id="sockets" aria-label="集めた宝石"></div>
         <div class="toggles">
+          <button class="btn ghost" id="homeBtn">スタートに戻る</button>
           <button class="btn ghost" id="soundBtn" aria-pressed="true">音 ON</button>
         </div>
       </div>
@@ -315,10 +327,21 @@ canvas#fx { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events
         <p class="jp" id="jp"></p>
       </div>
 
+      <div class="origin">
+        <span class="origin-label">元の文（ふつうの語順）</span>
+        <p class="origin-text" id="origin"></p>
+        <p class="origin-move" id="move"></p>
+      </div>
+
       <div class="altar">
         <div class="fixed" id="prefix"></div>
         <div class="zone" id="zone" aria-label="魔法陣（ここに石を並べる）"></div>
         <div class="fixed" id="suffix"></div>
+      </div>
+
+      <div id="pileArea">
+        <div class="pile-label">Stone pile ― 石の山</div>
+        <div class="pile" id="pile" aria-label="石の山"></div>
       </div>
 
       <p class="msg" id="msg" role="status" aria-live="polite"></p>
@@ -334,15 +357,10 @@ canvas#fx { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events
         <div class="pattern" id="pattern"></div>
       </div>
 
-      <div id="pileArea">
-        <div class="pile-label">Stone pile ― 石の山</div>
-        <div class="pile" id="pile" aria-label="石の山"></div>
-      </div>
-
       <div class="scroll result" id="result" hidden>
         <h3 id="gemTitle"></h3>
         <div class="compare">
-          <div><b>ふつうの語順</b><span id="normal"></span></div>
+          <div><b>元の文</b><span id="normal"></span></div>
           <div><b>倒置の呪文</b><span class="inv" id="inverted"></span></div>
         </div>
         <p class="tip" id="tip"></p>
@@ -376,7 +394,8 @@ const PROBLEMS = [
     tiles: [["Neither", "neg"], ["have", "aux", true], ["I", "S"]],
     decoys: ["did"],
     pattern: [["Neither", true], ["助動詞", true], ["主語"]],
-    normal: "I haven't been here before, either.",
+    normal: "I <em>haven't</em> been here before, <em>either</em>.",
+    move: "not … either が Neither になって文頭へ → have が I の前へ",
     inverted: "<em>Neither have I</em>.",
     tip: "Neither が先頭に来ると、助動詞が主語の前にジャンプする。相手の haven't に合わせて have を使う。did は相手の文と合わないので偽りの石。"
   },
@@ -387,7 +406,8 @@ const PROBLEMS = [
     tiles: [["Never", "neg"], ["did", "aux", true], ["I", "S"], ["dream", "V"], ["of making a fortune", "O"]],
     decoys: ["dreamed"],
     pattern: [["否定の副詞", true], ["助動詞", true], ["主語"], ["動詞の原形"], ["…"]],
-    normal: "I never dreamed of making a fortune by investing in the stock market.",
+    normal: "I <em>never</em> <em>dreamed</em> of making a fortune by investing in the stock market.",
+    move: "never が文頭へ → did が I の前へ出て、dreamed は原形 dream に",
     inverted: "<em>Never did I dream</em> of making a fortune by investing in the stock market.",
     tip: "否定語が文頭に来たら、疑問文と同じ語順になる。過去の文では did が前に出るので、動詞は原形 dream に戻る。"
   },
@@ -398,7 +418,8 @@ const PROBLEMS = [
     tiles: [["Little", "neg"], ["did", "aux", true], ["we", "S"], ["think", "V"], ["that he would lose the game", "O"]],
     decoys: ["thought"],
     pattern: [["Little", true], ["助動詞", true], ["主語"], ["think / know / dream など"], ["that 節"]],
-    normal: "We little thought that he would lose the game.",
+    normal: "We <em>little</em> <em>thought</em> that he would lose the game.",
+    move: "little が文頭へ → did が we の前へ出て、thought は原形 think に",
     inverted: "<em>Little did we think</em> that he would lose the game.",
     tip: "Little は「少し」ではなく「全く…ない」という否定語。think・know・dream・imagine とよく組む。"
   },
@@ -409,7 +430,8 @@ const PROBLEMS = [
     tiles: [["Only", "only"], ["recently", "only"], ["have", "aux", true], ["I", "S"], ["realized", "V"], ["the importance of my parents' lessons", "O"]],
     decoys: ["did"],
     pattern: [["Only ＋ 副詞", true], ["助動詞", true], ["主語"], ["過去分詞"], ["…"]],
-    normal: "I have realized the importance of my parents' lessons only recently.",
+    normal: "I <em>have</em> realized the importance of my parents' lessons <em>only recently</em>.",
+    move: "only recently が文頭へ → have が I の前へ",
     inverted: "<em>Only recently have I realized</em> the importance of my parents' lessons.",
     tip: "〈Only＋副詞(句)〉が文頭でも倒置が起きる。完了形の文なら have がそのまま主語の前へ出る。realized が過去分詞なので did は使えない。"
   },
@@ -420,7 +442,8 @@ const PROBLEMS = [
     tiles: [["At no time", "neg"], ["have", "aux", true], ["I", "S"], ["been", "V"], ["more nervous", "C"], ["than I am now", "adv"]],
     decoys: ["I have"],
     pattern: [["否定の副詞句", true], ["助動詞", true], ["主語"], ["been"], ["…"]],
-    normal: "I have never been more nervous than I am now.",
+    normal: "I <em>have</em> <em>never</em> been more nervous than I am now.",
+    move: "never が At no time になって文頭へ → have が I の前へ",
     inverted: "<em>At no time have I been</em> more nervous than I am now.",
     tip: "At no time ＝ never。1語の否定語でなく「句」でも、文頭に来れば倒置する。「I have」の石はふつうの語順のままなので偽りの石。"
   },
@@ -431,7 +454,8 @@ const PROBLEMS = [
     tiles: [["Not only", "neg"], ["do", "aux", true], ["the workers", "S"], ["want", "V"], ["a pay increase,", "O"]],
     decoys: ["does"],
     pattern: [["Not only", true], ["助動詞", true], ["主語"], ["動詞の原形"], ["…,"], ["but S also V"]],
-    normal: "The workers not only want a pay increase, but they also want reduced hours.",
+    normal: "The workers <em>not only</em> <em>want</em> a pay increase, but they also want reduced hours.",
+    move: "not only が文頭へ → do が the workers の前へ出る（後半はそのまま）",
     inverted: "<em>Not only do the workers want</em> a pay increase, but they also want reduced hours.",
     tip: "Not only が文頭なら、倒置するのは前半だけ。主語 the workers は複数なので do を使う（does は偽りの石）。but 以下はふつうの語順のまま。"
   },
@@ -442,7 +466,8 @@ const PROBLEMS = [
     tiles: [["Among", "place"], ["the audience", "place"], ["were", "be", true], ["the President", "S"], ["and her daughter", "S"]],
     decoys: ["was"],
     pattern: [["場所を表す前置詞句", true], ["動詞", true], ["主語"]],
-    normal: "The President and her daughter were among the audience.",
+    normal: "The President and her daughter <em>were</em> <em>among the audience</em>.",
+    move: "among the audience が文頭へ → were が主語の前へ",
     inverted: "<em>Among the audience were</em> the President and her daughter.",
     tip: "場所の句が文頭に来ると〈V＋S〉の語順になる。今回は助動詞を使わず、be動詞 were がそのまま主語の前に出る。主語が「大統領とその娘」の2人なので was ではなく were。"
   }
@@ -481,6 +506,9 @@ function loadProblem(i) {
   $("eyebrow").textContent = `Spell ${i + 1} / ${PROBLEMS.length}　・　例文 ${p.no}`;
   $("spellName").textContent = p.spell;
   $("jp").textContent = p.jp;
+  $("origin").innerHTML = p.normal;
+  $("move").textContent = p.move;
+  $("move").hidden = true; // revealed by the hint scroll or on success, so it doesn't give the answer away
   $("prefix").textContent = p.prefix;
   $("suffix").textContent = p.suffix;
   $("msg").textContent = ""; $("msg").className = "msg";
@@ -584,6 +612,9 @@ function onMove(e) {
     sfx("lift");
   }
   e.preventDefault();
+  // scroll the page when the stone is dragged near the top or bottom edge
+  if (e.clientY < 60) scrollBy(0, -12);
+  else if (e.clientY > innerHeight - 60) scrollBy(0, 12);
   drag.clone.style.transform = `translate(${e.clientX - drag.offX}px, ${e.clientY - drag.offY}px) rotate(-3deg) scale(1.08)`;
   const overZone = inside($("zone"), e.clientX, e.clientY);
   const overPile = !overZone && inside($("pile"), e.clientX, e.clientY);
@@ -675,7 +706,7 @@ function cast() {
       el.classList.remove("shake"); void el.offsetWidth; el.classList.add("shake");
     });
   }
-  if (state.tries >= 2 && $("hint").hidden) { $("hint").hidden = false; state.hints++; }
+  if (state.tries >= 2 && $("hint").hidden) { $("hint").hidden = false; $("move").hidden = false; state.hints++; }
 }
 
 function succeed() {
@@ -709,8 +740,9 @@ function succeed() {
   $("controls").hidden = true;
   $("pileArea").hidden = true;
   $("hint").hidden = true;
+  $("move").hidden = false;
   $("gemTitle").textContent = `${p.gem} を手に入れた`;
-  $("normal").textContent = p.normal;
+  $("normal").innerHTML = p.normal;
   $("inverted").innerHTML = p.inverted;
   $("tip").textContent = p.tip;
   $("nextBtn").textContent = state.idx === PROBLEMS.length - 1 ? "宝物庫へ" : "次の呪文へ";
@@ -748,11 +780,26 @@ function finale() {
 // ---------------- buttons ----------------
 $("startBtn").onclick = () => { initAudio(); $("title").hidden = true; $("game").hidden = false; loadProblem(0); };
 $("castBtn").onclick = cast;
-$("hintBtn").onclick = () => { if ($("hint").hidden) state.hints++; $("hint").hidden = !$("hint").hidden; };
+$("hintBtn").onclick = () => { if ($("hint").hidden) state.hints++; $("hint").hidden = !$("hint").hidden; if (!$("hint").hidden) $("move").hidden = false; };
 $("resetBtn").onclick = () => { state.pile = state.pile.concat(state.answer); state.answer = []; clearMsg(); render(); };
 $("speakBtn").onclick = speak;
 $("nextBtn").onclick = () => { if (state.idx < PROBLEMS.length - 1) loadProblem(state.idx + 1); else finale(); };
 $("againBtn").onclick = () => { state.results = []; $("finale").hidden = true; $("game").hidden = false; loadProblem(0); };
+// two-step confirm: browser confirm() dialogs are blocked in some embeds
+let homeArmed = null;
+$("homeBtn").onclick = () => {
+  if (!homeArmed) {
+    $("homeBtn").textContent = "もう一度押すと戻る";
+    homeArmed = setTimeout(() => { homeArmed = null; $("homeBtn").textContent = "スタートに戻る"; }, 3000);
+    return;
+  }
+  clearTimeout(homeArmed); homeArmed = null;
+  $("homeBtn").textContent = "スタートに戻る";
+  if ("speechSynthesis" in window) speechSynthesis.cancel();
+  state.results = [];
+  $("game").hidden = true; $("finale").hidden = true; $("title").hidden = false;
+  window.scrollTo({ top: 0 });
+};
 $("soundBtn").onclick = () => { soundOn = !soundOn; $("soundBtn").textContent = soundOn ? "音 ON" : "音 OFF"; $("soundBtn").setAttribute("aria-pressed", soundOn); };
 
 // ---------------- sound (synthesised, no files) ----------------

@@ -50,11 +50,16 @@
   tiles: [["Never", "neg"], ["did", "aux", true], ["I", "S"], ["dream", "V"], ["of making a fortune", "O"]],
   decoys: ["dreamed"],                          // 偽りの石
   pattern: [["否定の副詞", true], ["助動詞", true], ["主語"], ["動詞の原形"], ["…"]],  // ヒントの巻物
-  normal: "I never dreamed of making a fortune by investing in the stock market.",
+  normal: "I <em>never</em> <em>dreamed</em> of making a fortune by investing in the stock market.",  // 元の文（<em>＝倒置で動く語）
+  move: "never が文頭へ → did が I の前へ出て、dreamed は原形 dream に",  // ヒント・正解後に出る「動き」の説明
   inverted: "<em>Never did I dream</em> of making a fortune by investing in the stock market.",
   tip: "否定語が文頭に来たら、疑問文と同じ語順になる。…"
 }
 ```
+
+プレイ中は問題文の下に「元の文（ふつうの語順）」が出て、倒置で動く語に下線が付きます。
+`move` の説明はヒントを開いたときと正解後にだけ表示されます（最初から出すと答えが分かってしまうため）。
+途中でやめるときは、右上の「スタートに戻る」を2回押すとタイトル画面に戻ります。
 
 `tiles` の並びがそのまま正解です。3つ目の `true` は宝石になったときに光らせる石（主語の前へ跳ぶ語）。
 強調構文（514 It was not until … that ～ など）も同じ形で追加できます。
