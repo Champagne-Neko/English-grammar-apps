@@ -1,0 +1,807 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wizarding World of Inversion</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="単語の石を並べ替えて倒置の呪文を完成させ、宝石に変えよう。高校英語・倒置の語順トレーニング。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap">
+<style>
+/* Layout: one narrow spell-book column; the altar (answer line) sits above the pile of stones, the hand works between them. */
+:root {
+  --night: #13111f;        /* page ground, deep ink-violet */
+  --night-2: #1d1a30;      /* raised panels */
+  --parchment: #efe6cf;    /* main text */
+  --parchment-dim: #b3a98f;/* secondary text */
+  --gold: #d9b45b;         /* accent: rune light, buttons */
+  --stone: #77727d;        /* raw stone */
+  --stone-dark: #3e3b45;
+  --ok: #7fd6a4;
+  --bad: #f08a7e;
+  --font-display: "IM Fell English SC", "Times New Roman", serif;
+  --font-stone: "IM Fell English", Georgia, "Times New Roman", serif;
+  --font-body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { min-height: 100%; }
+body {
+  margin: 0;
+  background:
+    radial-gradient(1px 1px at 12% 18%, #fff8 50%, transparent 51%),
+    radial-gradient(1px 1px at 78% 9%, #fff6 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 64% 32%, #fff5 50%, transparent 51%),
+    radial-gradient(1px 1px at 32% 71%, #fff4 50%, transparent 51%),
+    radial-gradient(1px 1px at 90% 62%, #fff5 50%, transparent 51%),
+    radial-gradient(ellipse at 50% -10%, #3a2d5c 0%, transparent 60%),
+    var(--night);
+  background-attachment: fixed;
+  color: var(--parchment);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.7;
+  -webkit-tap-highlight-color: transparent;
+}
+.wrap {
+  max-width: 760px;
+  margin: 0 auto;
+  padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+h1, h2 { font-family: var(--font-display); font-weight: 400; text-wrap: balance; margin: 0; }
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+button:focus-visible, .stone:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+.btn {
+  border: 1px solid var(--gold);
+  background: linear-gradient(#3b2f17, #22190b);
+  color: #f6dc97;
+  padding: 10px 20px;
+  border-radius: 999px;
+  font-weight: 700;
+  letter-spacing: .04em;
+}
+.btn:hover { background: linear-gradient(#4a3a1b, #2a1f0d); }
+.btn.ghost { background: transparent; border-color: #ffffff30; color: var(--parchment-dim); font-weight: 400; }
+.btn.ghost:hover { border-color: #ffffff60; color: var(--parchment); }
+.btn.big { font-size: 1.1rem; padding: 14px 30px; }
+.btn:disabled { opacity: .4; cursor: default; }
+
+/* ---------- title screen ---------- */
+#title { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 18px; padding-top: 4vh; }
+.crest {
+  width: 120px; height: 120px; border-radius: 50%;
+  border: 1px solid #d9b45b80;
+  display: grid; place-items: center;
+  background: radial-gradient(circle, #d9b45b22, transparent 70%);
+  animation: breathe 4s ease-in-out infinite;
+}
+.crest svg { width: 72px; height: 72px; }
+@keyframes breathe { 50% { box-shadow: 0 0 40px #d9b45b40; } }
+#title h1 { font-size: clamp(2rem, 7vw, 3.2rem); line-height: 1.1; color: #f6dc97; text-shadow: 0 0 24px #d9b45b55; }
+.subtitle { font-family: var(--font-stone); font-style: italic; color: var(--parchment-dim); font-size: 1.1rem; margin: 0; }
+.howto {
+  text-align: left;
+  background: var(--night-2);
+  border: 1px solid #ffffff14;
+  border-radius: 14px;
+  padding: 16px 20px;
+  max-width: 520px;
+  width: 100%;
+}
+.howto h2 { font-size: 1.1rem; color: var(--gold); margin-bottom: 6px; }
+.howto ol { margin: 0; padding-left: 1.3em; }
+.howto li + li { margin-top: 4px; }
+.small { font-size: 12.5px; color: var(--parchment-dim); }
+
+/* ---------- top bar ---------- */
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.topbar .name { font-family: var(--font-display); color: #f6dc97; font-size: 1.05rem; letter-spacing: .03em; }
+.sockets { display: flex; gap: 6px; }
+.socket {
+  width: 20px; height: 20px;
+  clip-path: polygon(50% 0, 100% 38%, 82% 100%, 18% 100%, 0 38%);
+  background: #ffffff18;
+  transition: background .5s, transform .5s;
+}
+.socket.now { background: #ffffff40; }
+.socket.got { background: var(--g); transform: scale(1.15); filter: drop-shadow(0 0 4px var(--g)); }
+.toggles { display: flex; gap: 8px; }
+.toggles .btn { padding: 6px 12px; font-size: 12.5px; }
+
+/* ---------- lesson card ---------- */
+.lesson-head { display: flex; flex-direction: column; gap: 2px; }
+.eyebrow { font-size: 12px; letter-spacing: .12em; color: var(--gold); text-transform: uppercase; }
+.lesson-head h2 { font-size: clamp(1.4rem, 4.6vw, 1.9rem); color: var(--parchment); }
+.jp { margin: 6px 0 0; font-size: 1.05rem; }
+
+.altar {
+  position: relative;
+  background:
+    radial-gradient(ellipse at 50% 120%, #d9b45b18, transparent 60%),
+    var(--night-2);
+  border: 1px solid #d9b45b40;
+  border-radius: 18px;
+  padding: 16px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.fixed { font-family: var(--font-stone); font-size: 1.15rem; color: var(--parchment-dim); line-height: 1.5; }
+.fixed:empty { display: none; }
+.zone {
+  min-height: 74px;
+  border: 1.5px dashed #d9b45b55;
+  border-radius: 12px;
+  padding: 10px;
+  display: flex; flex-wrap: wrap; gap: 8px; align-content: flex-start; align-items: center;
+  transition: border-color .2s, background .2s;
+}
+.zone.hot { border-color: var(--gold); background: #d9b45b10; }
+.zone .placeholder-text { color: #ffffff40; font-size: 13px; padding: 0 6px; pointer-events: none; }
+.pile-label { font-size: 12px; letter-spacing: .12em; color: var(--parchment-dim); text-transform: uppercase; }
+.pile {
+  min-height: 74px;
+  padding: 10px;
+  border-radius: 12px;
+  background: #0000002a;
+  display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center;
+  transition: background .2s;
+}
+.pile.hot { background: #ffffff0d; }
+
+/* ---------- stones ---------- */
+.stone {
+  font-family: var(--font-stone);
+  font-size: 1.2rem;
+  line-height: 1.2;
+  padding: 10px 14px 11px;
+  border-radius: 14px 18px 12px 16px / 16px 12px 18px 14px;
+  color: #f3efe6;
+  background:
+    radial-gradient(circle at 25% 20%, #ffffff30, transparent 45%),
+    radial-gradient(circle at 80% 85%, #00000040, transparent 50%),
+    linear-gradient(160deg, var(--stone), var(--stone-dark));
+  box-shadow: inset 0 -3px 0 #00000055, inset 0 1px 0 #ffffff25, 0 4px 10px #00000060;
+  text-shadow: 0 1px 0 #0008;
+  user-select: none; -webkit-user-select: none;
+  touch-action: none;
+  cursor: grab;
+  position: relative;
+  border: 0;
+  transition: transform .15s;
+}
+.stone:hover { transform: translateY(-2px); }
+.stone.ghost { opacity: .25; outline: 1.5px dashed var(--gold); box-shadow: none; }
+.stone.drag {
+  position: fixed; z-index: 50; left: 0; top: 0; pointer-events: none; cursor: grabbing;
+  box-shadow: 0 0 0 1px #d9b45b, 0 0 24px #d9b45baa, 0 14px 24px #000a;
+  transition: none;
+}
+.slot-mark {
+  width: 6px; align-self: stretch; min-height: 40px; border-radius: 3px;
+  background: var(--gold); box-shadow: 0 0 12px var(--gold);
+}
+.stone.shake { animation: shake .45s; }
+@keyframes shake { 20%, 60% { transform: translateX(-6px) rotate(-2deg); } 40%, 80% { transform: translateX(6px) rotate(2deg); } }
+
+/* gem state */
+.stone.gem {
+  cursor: default;
+  color: #fff;
+  border-radius: 6px;
+  clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 10px 100%, 0 50%);
+  padding-inline: 20px;
+  background:
+    linear-gradient(115deg, #ffffff70 0 12%, transparent 12% 40%, #ffffff30 40% 46%, transparent 46%),
+    linear-gradient(180deg, color-mix(in srgb, var(--g) 60%, #fff), var(--g) 55%, color-mix(in srgb, var(--g) 55%, #000));
+  box-shadow: none;
+  filter: drop-shadow(0 0 10px var(--g));
+  color: var(--ink, #fff);
+  text-shadow: 0 1px 2px var(--ink-shadow, #0009);
+  animation: become .7s cubic-bezier(.2,1.6,.4,1) both;
+}
+.stone.gem.key { filter: drop-shadow(0 0 4px #fff) drop-shadow(0 0 14px var(--g)); }
+@keyframes become { 0% { transform: scale(1) rotate(0); } 40% { transform: scale(.6) rotate(-8deg); } 100% { transform: scale(1) rotate(0); } }
+.gem-wrap { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; }
+.role { font-size: 11px; color: var(--parchment-dim); letter-spacing: .04em; }
+.role.key { color: #f6dc97; font-weight: 700; }
+
+/* ---------- controls / feedback ---------- */
+.controls { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.msg { min-height: 1.7em; text-align: center; margin: 0; font-weight: 700; }
+.msg.ok { color: var(--ok); }
+.msg.bad { color: var(--bad); }
+.scroll {
+  background: linear-gradient(#efe6cf, #e2d5b3);
+  color: #3a2c17;
+  border-radius: 10px;
+  padding: 12px 16px;
+  box-shadow: 0 6px 18px #0007;
+}
+.scroll h3 { margin: 0 0 6px; font-size: 13px; letter-spacing: .1em; color: #7a5a1e; }
+.pattern { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.pattern span { background: #3a2c1712; border: 1px solid #3a2c1740; border-radius: 6px; padding: 2px 8px; font-size: 13.5px; }
+.pattern span.key { background: #d9b45b; border-color: #a17d2b; font-weight: 700; }
+.pattern i { font-style: normal; opacity: .6; }
+
+.result { display: flex; flex-direction: column; gap: 12px; }
+.compare { display: grid; gap: 6px; font-family: var(--font-stone); font-size: 1.1rem; }
+.compare div { display: grid; grid-template-columns: 5.5em 1fr; gap: 8px; align-items: baseline; min-width: 0; }
+.compare b { font-family: var(--font-body); font-size: 12px; font-weight: 700; color: #7a5a1e; }
+.compare .inv { color: #2b1d07; }
+.compare em { font-style: normal; background: #d9b45b; border-radius: 4px; padding: 0 3px; }
+.tip { margin: 0; font-size: 14.5px; }
+
+/* ---------- finale ---------- */
+#finale { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 16px; padding-top: 3vh; }
+#finale h1 { color: #f6dc97; font-size: clamp(1.8rem, 6vw, 2.6rem); }
+.treasury { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; width: 100%; }
+.treasury .treasure { flex: 0 1 160px; }
+.treasure {
+  background: var(--night-2); border: 1px solid #ffffff14; border-radius: 12px; padding: 12px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center;
+}
+.treasure .g {
+  width: 36px; height: 36px;
+  clip-path: polygon(50% 0, 100% 38%, 82% 100%, 18% 100%, 0 38%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--g) 50%, #fff), var(--g) 60%, color-mix(in srgb, var(--g) 50%, #000));
+  filter: drop-shadow(0 0 6px var(--g));
+}
+.treasure .t { font-family: var(--font-stone); font-size: 1.05rem; }
+.treasure .s { font-size: 12px; color: var(--parchment-dim); }
+.rank { font-family: var(--font-display); font-size: 1.4rem; color: var(--gold); margin: 0; }
+
+canvas#fx { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 60; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<canvas id="fx"></canvas>
+<main class="wrap">
+
+  <!-- Title -->
+  <section id="title">
+    <div class="crest" aria-hidden="true">
+      <svg viewBox="0 0 64 64" fill="none" stroke="#d9b45b" stroke-width="2" stroke-linecap="round">
+        <path d="M14 50 L44 20" stroke-width="3"/>
+        <path d="M44 20 L48 16" stroke="#f6dc97" stroke-width="4"/>
+        <path d="M50 8 v6 M47 11 h6 M30 10 v4 M28 12 h4 M54 28 v4 M52 30 h4" stroke="#f6dc97"/>
+        <path d="M10 56 h20" opacity=".5"/>
+      </svg>
+    </div>
+    <h1>Wizarding World<br>of Inversion</h1>
+    <p class="subtitle">倒置の魔法学院 ― 石を並べて、呪文を宝石に。</p>
+    <div class="howto">
+      <h2>How to cast</h2>
+      <ol>
+        <li>下の山から<strong>単語の石</strong>をドラッグして、上の魔法陣に並べる（タップでも置ける）。</li>
+        <li>並べた石はドラッグで入れ替え。山に戻すと外せる。</li>
+        <li><strong>偽りの石</strong>が1つ混ざっている。使わずに残そう。</li>
+        <li>「呪文を唱える」で判定。正しい語順なら石が<strong>宝石</strong>に変わる。</li>
+      </ol>
+      <p class="small">全7問 ・ 倒置（否定語 / Only / Not only / 場所の句が文頭）</p>
+    </div>
+    <button class="btn big" id="startBtn">入学する</button>
+  </section>
+
+  <!-- Game -->
+  <section id="game" hidden>
+    <div class="wrap" style="padding:0">
+      <div class="topbar">
+        <span class="name">Wizarding World of Inversion</span>
+        <div class="sockets" id="sockets" aria-label="集めた宝石"></div>
+        <div class="toggles">
+          <button class="btn ghost" id="soundBtn" aria-pressed="true">音 ON</button>
+        </div>
+      </div>
+
+      <div class="lesson-head">
+        <span class="eyebrow" id="eyebrow"></span>
+        <h2 id="spellName"></h2>
+        <p class="jp" id="jp"></p>
+      </div>
+
+      <div class="altar">
+        <div class="fixed" id="prefix"></div>
+        <div class="zone" id="zone" aria-label="魔法陣（ここに石を並べる）"></div>
+        <div class="fixed" id="suffix"></div>
+      </div>
+
+      <p class="msg" id="msg" role="status" aria-live="polite"></p>
+
+      <div class="controls" id="controls">
+        <button class="btn" id="castBtn">呪文を唱える</button>
+        <button class="btn ghost" id="hintBtn">ヒントの巻物</button>
+        <button class="btn ghost" id="resetBtn">石を山に戻す</button>
+      </div>
+
+      <div class="scroll" id="hint" hidden>
+        <h3>HINT ― 呪文の型</h3>
+        <div class="pattern" id="pattern"></div>
+      </div>
+
+      <div id="pileArea">
+        <div class="pile-label">Stone pile ― 石の山</div>
+        <div class="pile" id="pile" aria-label="石の山"></div>
+      </div>
+
+      <div class="scroll result" id="result" hidden>
+        <h3 id="gemTitle"></h3>
+        <div class="compare">
+          <div><b>ふつうの語順</b><span id="normal"></span></div>
+          <div><b>倒置の呪文</b><span class="inv" id="inverted"></span></div>
+        </div>
+        <p class="tip" id="tip"></p>
+        <div class="controls">
+          <button class="btn ghost" id="speakBtn" style="color:#3a2c17;border-color:#3a2c1760">英文を聞く</button>
+          <button class="btn" id="nextBtn">次の呪文へ</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Finale -->
+  <section id="finale" hidden>
+    <h1>七つの宝石がそろった</h1>
+    <p class="rank" id="rank"></p>
+    <p id="stats"></p>
+    <div class="treasury" id="treasury"></div>
+    <button class="btn big" id="againBtn">もう一度挑戦する</button>
+  </section>
+</main>
+
+<script>
+// ---------------- problems ----------------
+// tiles: [text, role]; order = correct answer. key:true marks the stone that "jumps" in inversion.
+const ROLE = { neg: "否定語", only: "Only＋副詞", aux: "助動詞", be: "be動詞", S: "主語", V: "動詞", O: "目的語など", C: "補語など", adv: "修飾語", place: "場所の句" };
+const PROBLEMS = [
+  {
+    no: 500, spell: "Neither ― こだまの呪文", gem: "Moonstone", color: "#9fc3e6", light: true,
+    jp: "「ここには今まで来たことがない」「そうですか？ 私もありません」",
+    prefix: "“I haven't been here before.” “Is that so?", suffix: ".”",
+    tiles: [["Neither", "neg"], ["have", "aux", true], ["I", "S"]],
+    decoys: ["did"],
+    pattern: [["Neither", true], ["助動詞", true], ["主語"]],
+    normal: "I haven't been here before, either.",
+    inverted: "<em>Neither have I</em>.",
+    tip: "Neither が先頭に来ると、助動詞が主語の前にジャンプする。相手の haven't に合わせて have を使う。did は相手の文と合わないので偽りの石。"
+  },
+  {
+    no: 494, spell: "Never ― 夢見ずの呪文", gem: "Ruby", color: "#e0455a",
+    jp: "株式市場に投資して財産を築くなどとは、夢にも思わなかった。",
+    prefix: "", suffix: "by investing in the stock market.",
+    tiles: [["Never", "neg"], ["did", "aux", true], ["I", "S"], ["dream", "V"], ["of making a fortune", "O"]],
+    decoys: ["dreamed"],
+    pattern: [["否定の副詞", true], ["助動詞", true], ["主語"], ["動詞の原形"], ["…"]],
+    normal: "I never dreamed of making a fortune by investing in the stock market.",
+    inverted: "<em>Never did I dream</em> of making a fortune by investing in the stock market.",
+    tip: "否定語が文頭に来たら、疑問文と同じ語順になる。過去の文では did が前に出るので、動詞は原形 dream に戻る。"
+  },
+  {
+    no: 495, spell: "Little ― 思いもよらぬ呪文", gem: "Sapphire", color: "#3d6fe0",
+    jp: "我々は、彼がその試合に負けるなどとは思ってもみなかった。",
+    prefix: "", suffix: ".",
+    tiles: [["Little", "neg"], ["did", "aux", true], ["we", "S"], ["think", "V"], ["that he would lose the game", "O"]],
+    decoys: ["thought"],
+    pattern: [["Little", true], ["助動詞", true], ["主語"], ["think / know / dream など"], ["that 節"]],
+    normal: "We little thought that he would lose the game.",
+    inverted: "<em>Little did we think</em> that he would lose the game.",
+    tip: "Little は「少し」ではなく「全く…ない」という否定語。think・know・dream・imagine とよく組む。"
+  },
+  {
+    no: 498, spell: "Only ― ようやくの呪文", gem: "Emerald", color: "#1fae6e",
+    jp: "最近になってようやく、親の教えの大切さがわかった。",
+    prefix: "", suffix: ".",
+    tiles: [["Only", "only"], ["recently", "only"], ["have", "aux", true], ["I", "S"], ["realized", "V"], ["the importance of my parents' lessons", "O"]],
+    decoys: ["did"],
+    pattern: [["Only ＋ 副詞", true], ["助動詞", true], ["主語"], ["過去分詞"], ["…"]],
+    normal: "I have realized the importance of my parents' lessons only recently.",
+    inverted: "<em>Only recently have I realized</em> the importance of my parents' lessons.",
+    tip: "〈Only＋副詞(句)〉が文頭でも倒置が起きる。完了形の文なら have がそのまま主語の前へ出る。realized が過去分詞なので did は使えない。"
+  },
+  {
+    no: 496, spell: "At no time ― 時封じの呪文", gem: "Amethyst", color: "#9b5de5",
+    jp: "今ほど緊張したことはこれまでに無かった。",
+    prefix: "", suffix: ".",
+    tiles: [["At no time", "neg"], ["have", "aux", true], ["I", "S"], ["been", "V"], ["more nervous", "C"], ["than I am now", "adv"]],
+    decoys: ["I have"],
+    pattern: [["否定の副詞句", true], ["助動詞", true], ["主語"], ["been"], ["…"]],
+    normal: "I have never been more nervous than I am now.",
+    inverted: "<em>At no time have I been</em> more nervous than I am now.",
+    tip: "At no time ＝ never。1語の否定語でなく「句」でも、文頭に来れば倒置する。「I have」の石はふつうの語順のままなので偽りの石。"
+  },
+  {
+    no: 497, spell: "Not only ― 二重詠唱", gem: "Topaz", color: "#f2a33a",
+    jp: "労働者は賃上げを要求するだけでなく、労働時間の削減も望んでいる。",
+    prefix: "", suffix: "but they also want reduced hours.",
+    tiles: [["Not only", "neg"], ["do", "aux", true], ["the workers", "S"], ["want", "V"], ["a pay increase,", "O"]],
+    decoys: ["does"],
+    pattern: [["Not only", true], ["助動詞", true], ["主語"], ["動詞の原形"], ["…,"], ["but S also V"]],
+    normal: "The workers not only want a pay increase, but they also want reduced hours.",
+    inverted: "<em>Not only do the workers want</em> a pay increase, but they also want reduced hours.",
+    tip: "Not only が文頭なら、倒置するのは前半だけ。主語 the workers は複数なので do を使う（does は偽りの石）。but 以下はふつうの語順のまま。"
+  },
+  {
+    no: 508, spell: "Among ― 召喚の陣", gem: "Diamond", color: "#cfe9f7", light: true,
+    jp: "観客の中には大統領とその娘がいた。",
+    prefix: "", suffix: ".",
+    tiles: [["Among", "place"], ["the audience", "place"], ["were", "be", true], ["the President", "S"], ["and her daughter", "S"]],
+    decoys: ["was"],
+    pattern: [["場所を表す前置詞句", true], ["動詞", true], ["主語"]],
+    normal: "The President and her daughter were among the audience.",
+    inverted: "<em>Among the audience were</em> the President and her daughter.",
+    tip: "場所の句が文頭に来ると〈V＋S〉の語順になる。今回は助動詞を使わず、be動詞 were がそのまま主語の前に出る。主語が「大統領とその娘」の2人なので was ではなく were。"
+  }
+];
+
+// ---------------- state ----------------
+const $ = (id) => document.getElementById(id);
+const state = { idx: 0, answer: [], pile: [], solved: false, results: [], tries: 0, hints: 0 };
+let soundOn = true;
+
+function stoneList(p) {
+  const list = p.tiles.map(([text, role, key], i) => ({ id: i, text, role, key: !!key, decoy: false }));
+  p.decoys.forEach((text, j) => list.push({ id: p.tiles.length + j, text, role: null, key: false, decoy: true }));
+  return list;
+}
+let stones = [];
+
+function shuffled(ids, n) {
+  let a;
+  do {
+    a = ids.slice();
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  } while (a.slice(0, n).every((v, i) => v === i) && a.length > 1);
+  return a;
+}
+
+function loadProblem(i) {
+  state.idx = i;
+  const p = PROBLEMS[i];
+  stones = stoneList(p);
+  state.answer = [];
+  state.pile = shuffled(stones.map((s) => s.id), p.tiles.length);
+  state.solved = false;
+  state.tries = 0;
+  state.hints = 0;
+  $("eyebrow").textContent = `Spell ${i + 1} / ${PROBLEMS.length}　・　例文 ${p.no}`;
+  $("spellName").textContent = p.spell;
+  $("jp").textContent = p.jp;
+  $("prefix").textContent = p.prefix;
+  $("suffix").textContent = p.suffix;
+  $("msg").textContent = ""; $("msg").className = "msg";
+  $("hint").hidden = true;
+  $("result").hidden = true;
+  $("controls").hidden = false;
+  $("pileArea").hidden = false;
+  $("pattern").innerHTML = p.pattern.map(([t, k]) => `<span class="${k ? "key" : ""}">${t}</span>`).join("<i>＋</i>");
+  renderSockets();
+  render();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function renderSockets() {
+  $("sockets").innerHTML = PROBLEMS.map((p, i) => {
+    const got = state.results[i];
+    return `<span class="socket ${got ? "got" : ""} ${i === state.idx && !got ? "now" : ""}" style="--g:${p.color}" title="${got ? p.gem : ""}"></span>`;
+  }).join("");
+}
+
+function stoneEl(s) {
+  const b = document.createElement("button");
+  b.className = "stone";
+  b.type = "button";
+  b.textContent = s.text;
+  b.dataset.id = s.id;
+  b.setAttribute("aria-label", s.text);
+  return b;
+}
+
+// placeholder index while dragging over the zone (null = none)
+let dropIndex = null;
+
+function render() {
+  const zone = $("zone"), pile = $("pile");
+  zone.innerHTML = ""; pile.innerHTML = "";
+  const ids = state.answer.slice();
+  if (dropIndex !== null) ids.splice(dropIndex, 0, "mark");
+  if (!ids.length) {
+    const t = document.createElement("span");
+    t.className = "placeholder-text";
+    t.textContent = "ここに石を並べて呪文を組み立てよう";
+    zone.appendChild(t);
+  }
+  ids.forEach((id) => {
+    if (id === "mark") { const m = document.createElement("span"); m.className = "slot-mark"; zone.appendChild(m); return; }
+    zone.appendChild(stoneEl(stones[id]));
+  });
+  state.pile.forEach((id) => pile.appendChild(stoneEl(stones[id])));
+  if (drag) {
+    const g = document.querySelector(`.stone[data-id="${drag.id}"]:not(.drag)`);
+    if (g) g.classList.add("ghost");
+  }
+}
+
+// ---------------- drag & drop (pointer events: mouse, touch, pen) ----------------
+let drag = null;
+
+function onDown(e) {
+  const el = e.target.closest(".stone");
+  if (!el || state.solved || el.classList.contains("drag")) return;
+  e.preventDefault();
+  const id = +el.dataset.id;
+  const r = el.getBoundingClientRect();
+  drag = {
+    id, el, startX: e.clientX, startY: e.clientY, moved: false,
+    offX: e.clientX - r.left, offY: e.clientY - r.top,
+    from: state.answer.includes(id) ? "answer" : "pile",
+    fromIndex: state.answer.includes(id) ? state.answer.indexOf(id) : state.pile.indexOf(id),
+    clone: null, pointerId: e.pointerId
+  };
+}
+
+function inside(el, x, y, pad = 18) {
+  const r = el.getBoundingClientRect();
+  return x >= r.left - pad && x <= r.right + pad && y >= r.top - pad && y <= r.bottom + pad;
+}
+
+function zoneIndexAt(x, y) {
+  const els = [...$("zone").querySelectorAll(".stone:not(.ghost)")];
+  for (let i = 0; i < els.length; i++) {
+    const r = els[i].getBoundingClientRect();
+    if (y < r.top) return i;
+    if (y <= r.bottom && x < r.left + r.width / 2) return i;
+  }
+  return els.length;
+}
+
+function onMove(e) {
+  if (!drag || e.pointerId !== drag.pointerId) return;
+  const dx = e.clientX - drag.startX, dy = e.clientY - drag.startY;
+  if (!drag.moved) {
+    if (Math.hypot(dx, dy) < 6) return;
+    drag.moved = true;
+    // lift the stone out of its list
+    if (drag.from === "answer") state.answer.splice(drag.fromIndex, 1); else state.pile.splice(drag.fromIndex, 1);
+    const c = stoneEl(stones[drag.id]);
+    c.classList.add("drag");
+    document.body.appendChild(c);
+    drag.clone = c;
+    sfx("lift");
+  }
+  e.preventDefault();
+  drag.clone.style.transform = `translate(${e.clientX - drag.offX}px, ${e.clientY - drag.offY}px) rotate(-3deg) scale(1.08)`;
+  const overZone = inside($("zone"), e.clientX, e.clientY);
+  const overPile = !overZone && inside($("pile"), e.clientX, e.clientY);
+  $("zone").classList.toggle("hot", overZone);
+  $("pile").classList.toggle("hot", overPile);
+  let ni = null;
+  if (overZone) {
+    dropIndex = null; render(); // measure without the marker
+    ni = zoneIndexAt(e.clientX, e.clientY);
+  }
+  if (ni !== dropIndex || !overZone) { dropIndex = ni; render(); }
+  else render();
+}
+
+function onUp(e) {
+  if (!drag || e.pointerId !== drag.pointerId) return;
+  const d = drag;
+  if (!d.moved) {
+    // tap: send stone to the other side
+    drag = null;
+    if (d.from === "pile") { state.pile.splice(d.fromIndex, 1); state.answer.push(d.id); }
+    else { state.answer.splice(d.fromIndex, 1); state.pile.push(d.id); }
+    sfx("drop");
+    clearMsg();
+    render();
+    return;
+  }
+  const overZone = inside($("zone"), e.clientX, e.clientY);
+  const overPile = !overZone && inside($("pile"), e.clientX, e.clientY);
+  if (overZone) {
+    // measure at the release point: the last pointermove may not have been handled yet
+    dropIndex = null; render();
+    state.answer.splice(zoneIndexAt(e.clientX, e.clientY), 0, d.id);
+  }
+  else if (overPile) state.pile.push(d.id);
+  else if (d.from === "answer") state.answer.splice(d.fromIndex, 0, d.id);
+  else state.pile.splice(d.fromIndex, 0, d.id);
+  d.clone.remove();
+  drag = null; dropIndex = null;
+  $("zone").classList.remove("hot"); $("pile").classList.remove("hot");
+  if (overZone || overPile) sfx("drop");
+  clearMsg();
+  render();
+}
+
+document.addEventListener("pointerdown", onDown);
+window.addEventListener("pointermove", onMove, { passive: false });
+window.addEventListener("pointerup", onUp);
+window.addEventListener("pointercancel", onUp);
+
+// keyboard: Enter/Space on a stone moves it across
+document.addEventListener("keydown", (e) => {
+  const el = e.target.closest && e.target.closest(".stone");
+  if (!el || state.solved || (e.key !== "Enter" && e.key !== " ")) return;
+  e.preventDefault();
+  const id = +el.dataset.id;
+  if (state.answer.includes(id)) { state.answer.splice(state.answer.indexOf(id), 1); state.pile.push(id); }
+  else { state.pile.splice(state.pile.indexOf(id), 1); state.answer.push(id); }
+  render();
+  const again = document.querySelector(`.stone[data-id="${id}"]`); if (again) again.focus();
+});
+
+// ---------------- casting ----------------
+function clearMsg() { if (!state.solved) { $("msg").textContent = ""; $("msg").className = "msg"; } }
+function say(text, cls) { $("msg").textContent = text; $("msg").className = "msg " + cls; }
+
+function cast() {
+  if (state.solved) return;
+  const p = PROBLEMS[state.idx];
+  const n = p.tiles.length;
+  const a = state.answer;
+  if (!a.length) { say("魔法陣が空っぽだ。石を並べよう。", "bad"); return; }
+  const ok = a.length === n && a.every((id, i) => id === i);
+  if (ok) return succeed();
+  state.tries++;
+  sfx("fail");
+  let first = a.findIndex((id, i) => id !== i);
+  const decoy = a.find((id) => stones[id].decoy);
+  if (decoy !== undefined) {
+    say(`偽りの石「${stones[decoy].text}」が混ざっている…`, "bad");
+    first = a.indexOf(decoy);
+  } else if (first === -1) {
+    say("呪文がまだ途中だ。残りの石も並べよう。", "bad");
+  } else {
+    say(first === 0 ? "最初の石から見直そう。" : `${first}個目までは正しい。${first + 1}個目の石を見直そう。`, "bad");
+  }
+  if (first >= 0) {
+    [...$("zone").querySelectorAll(".stone")].slice(first).forEach((el) => {
+      el.classList.remove("shake"); void el.offsetWidth; el.classList.add("shake");
+    });
+  }
+  if (state.tries >= 2 && $("hint").hidden) { $("hint").hidden = false; state.hints++; }
+}
+
+function succeed() {
+  const p = PROBLEMS[state.idx];
+  state.solved = true;
+  state.results[state.idx] = { tries: state.tries, hints: state.hints };
+  say("呪文成功！ 石が宝石に変わった。", "ok");
+  sfx("win");
+  if (navigator.vibrate) { try { navigator.vibrate([30, 40, 30, 40, 80]); } catch (_) {} }
+  const zone = $("zone");
+  zone.innerHTML = "";
+  stones.slice(0, p.tiles.length).forEach((s, i) => {
+    const w = document.createElement("span");
+    w.className = "gem-wrap";
+    const el = stoneEl(s);
+    el.disabled = true;
+    el.style.setProperty("--g", p.color);
+    if (p.light) { el.style.setProperty("--ink", "#1d2540"); el.style.setProperty("--ink-shadow", "#fff8"); }
+    const role = document.createElement("span");
+    role.className = "role" + (s.key ? " key" : "");
+    role.textContent = ROLE[s.role] || "";
+    w.append(el, role);
+    zone.appendChild(w);
+    setTimeout(() => {
+      el.classList.add("gem");
+      if (s.key) el.classList.add("key");
+      const r = el.getBoundingClientRect();
+      burst(r.left + r.width / 2, r.top + r.height / 2, p.color, s.key ? 40 : 22);
+    }, 120 * i);
+  });
+  $("controls").hidden = true;
+  $("pileArea").hidden = true;
+  $("hint").hidden = true;
+  $("gemTitle").textContent = `${p.gem} を手に入れた`;
+  $("normal").textContent = p.normal;
+  $("inverted").innerHTML = p.inverted;
+  $("tip").textContent = p.tip;
+  $("nextBtn").textContent = state.idx === PROBLEMS.length - 1 ? "宝物庫へ" : "次の呪文へ";
+  setTimeout(() => { $("result").hidden = false; renderSockets(); }, 120 * p.tiles.length + 300);
+}
+
+function fullSentence(p) {
+  const body = p.tiles.map((t) => t[0]).join(" ");
+  return [p.prefix, body, p.suffix].filter(Boolean).join(" ").replace(/\s+([.,”])/g, "$1").replace(/[“”]/g, "");
+}
+
+function speak() {
+  if (!("speechSynthesis" in window)) { say("この端末では読み上げが使えません。", "bad"); return; }
+  const u = new SpeechSynthesisUtterance(fullSentence(PROBLEMS[state.idx]));
+  u.lang = "en-US"; u.rate = 0.9;
+  speechSynthesis.cancel(); speechSynthesis.speak(u);
+}
+
+function finale() {
+  $("game").hidden = true;
+  $("finale").hidden = false;
+  const total = state.results.reduce((s, r) => s + (r ? r.tries : 0), 0);
+  const perfect = state.results.filter((r) => r && r.tries === 0).length;
+  $("rank").textContent = perfect === 7 ? "Grand Sorcerer of Inversion" : perfect >= 5 ? "Master Wizard" : perfect >= 3 ? "Adept" : "Apprentice";
+  $("stats").textContent = `一発成功 ${perfect} / 7　・　失敗した詠唱 ${total} 回`;
+  $("treasury").innerHTML = PROBLEMS.map((p, i) => {
+    const r = state.results[i];
+    return `<div class="treasure" style="--g:${p.color}"><span class="g"></span><span class="t">${p.gem}</span><span class="s">${p.spell.split(" ― ")[0]}${r && r.tries === 0 ? "　一発成功" : ""}</span></div>`;
+  }).join("");
+  window.scrollTo({ top: 0 });
+  for (let k = 0; k < 6; k++) setTimeout(() => burst(innerWidth * (0.2 + Math.random() * 0.6), innerHeight * 0.3, PROBLEMS[k].color, 50), k * 220);
+  sfx("win");
+}
+
+// ---------------- buttons ----------------
+$("startBtn").onclick = () => { initAudio(); $("title").hidden = true; $("game").hidden = false; loadProblem(0); };
+$("castBtn").onclick = cast;
+$("hintBtn").onclick = () => { if ($("hint").hidden) state.hints++; $("hint").hidden = !$("hint").hidden; };
+$("resetBtn").onclick = () => { state.pile = state.pile.concat(state.answer); state.answer = []; clearMsg(); render(); };
+$("speakBtn").onclick = speak;
+$("nextBtn").onclick = () => { if (state.idx < PROBLEMS.length - 1) loadProblem(state.idx + 1); else finale(); };
+$("againBtn").onclick = () => { state.results = []; $("finale").hidden = true; $("game").hidden = false; loadProblem(0); };
+$("soundBtn").onclick = () => { soundOn = !soundOn; $("soundBtn").textContent = soundOn ? "音 ON" : "音 OFF"; $("soundBtn").setAttribute("aria-pressed", soundOn); };
+
+// ---------------- sound (synthesised, no files) ----------------
+let actx = null;
+function initAudio() { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); actx.resume(); } catch (_) {} }
+function tone(freq, t0, dur, type = "sine", vol = 0.12) {
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(vol, t0 + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g).connect(actx.destination); o.start(t0); o.stop(t0 + dur + 0.05);
+}
+function sfx(kind) {
+  if (!soundOn || !actx) return;
+  const t = actx.currentTime;
+  if (kind === "lift") tone(660, t, 0.08, "triangle", 0.05);
+  if (kind === "drop") { tone(180, t, 0.09, "square", 0.04); tone(120, t + 0.01, 0.12, "sine", 0.08); }
+  if (kind === "fail") { tone(196, t, 0.25, "sawtooth", 0.05); tone(185, t + 0.12, 0.3, "sawtooth", 0.05); }
+  if (kind === "win") [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, t + i * 0.09, 0.6, "triangle", 0.09));
+}
+
+// ---------------- sparkles ----------------
+const cv = $("fx"), cx = cv.getContext("2d");
+let parts = [], running = false;
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+function fit() { const d = devicePixelRatio || 1; cv.width = innerWidth * d; cv.height = innerHeight * d; cx.setTransform(d, 0, 0, d, 0, 0); }
+addEventListener("resize", fit); fit();
+function burst(x, y, color, n) {
+  if (reduce) return;
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, v = 1.5 + Math.random() * 4;
+    parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 1.5, life: 1, size: 1.5 + Math.random() * 3, color: Math.random() < 0.3 ? "#fff6d0" : color });
+  }
+  if (!running) { running = true; requestAnimationFrame(tick); }
+}
+function tick() {
+  cx.clearRect(0, 0, innerWidth, innerHeight);
+  parts = parts.filter((p) => p.life > 0);
+  for (const p of parts) {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.09; p.vx *= 0.98; p.life -= 0.018;
+    cx.globalAlpha = Math.max(p.life, 0);
+    cx.fillStyle = p.color;
+    cx.beginPath();
+    const s = p.size;
+    cx.moveTo(p.x, p.y - s * 2); cx.lineTo(p.x + s * 0.6, p.y); cx.lineTo(p.x, p.y + s * 2); cx.lineTo(p.x - s * 0.6, p.y); cx.closePath();
+    cx.fill();
+  }
+  cx.globalAlpha = 1;
+  if (parts.length) requestAnimationFrame(tick); else running = false;
+}
+</script>
+</body>
+</html>
